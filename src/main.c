@@ -3,23 +3,36 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef struct Obstacle {
+typedef struct Block {
   int x, y, width, height;
   bool isVisible;
   Color color;
-} Obstacle;
+} Block;
 
 int main(void) {
   const int screenWidth = 1200;
   const int screenHeight = 1000;
-
+  const int blockLayout[] = {4, 3, 4, 3};
+  const int blockWidth = 200;
+  const int blockHeight = 20;
+  const int ballRadius = 5;
+  const int ballSpeed = 7;
+  const int boardWidth = 200;
+  const int boardSpeed = 10;
   const Color colorArray[8] = {RED,    GREEN,  BLUE, YELLOW,
                                PURPLE, ORANGE, GOLD, PINK};
+
+  int blockLayoutLength = sizeof(blockLayout) / sizeof(blockLayout[0]);
+
+  int blockCount = 0;
+  for (int i = 0; i < blockLayoutLength; i++) {
+    blockCount += blockLayout[i];
+  }
 
   InitWindow(screenWidth, screenHeight, "My awesome game POGGIES");
   SetTargetFPS(144);
 
-  Obstacle obstacles[14];
+  Block blocks[blockCount];
 
   bool isGameOver = true;
   int boardX, ballX, ballY;
@@ -31,103 +44,102 @@ int main(void) {
     if (isGameOver) {
       DrawText("Press Space to start", 350, screenHeight / 2, 40, WHITE);
       if (IsKeyPressed(KEY_SPACE)) {
-        int obstaclesCount = 0;
-        for (int i = 0; i < 4; i++) {
-          int x = i % 2 == 0 ? 200 : 300;
-          for (int j = 0; j < (i % 2 == 0 ? 4 : 3); j++) {
-            obstacles[obstaclesCount].x = x;
-            x += 200;
-            obstacles[obstaclesCount].y = 50 + i * 10;
-            obstacles[obstaclesCount].width = 200;
-            obstacles[obstaclesCount].height = 10;
-            obstacles[obstaclesCount].isVisible = true;
-            obstacles[obstaclesCount].color = colorArray[rand() % 8];
-            obstaclesCount++;
+        int currentBlock = 0;
+        for (int i = 0; i < blockLayoutLength; i++) {
+          int x = (screenWidth - blockWidth * blockLayout[i]) / 2;
+          for (int j = 0; j < blockLayout[i]; j++) {
+            blocks[currentBlock].x = x;
+            x += blockWidth;
+            blocks[currentBlock].y = 50 + i * blockHeight;
+            blocks[currentBlock].width = blockWidth;
+            blocks[currentBlock].height = blockHeight;
+            blocks[currentBlock].isVisible = true;
+            blocks[currentBlock].color = colorArray[rand() % 8];
+            currentBlock++;
           }
         }
         isBallXIncreasing = rand() % 2 == 0;
         isBallYIncreasing = false;
         ballX = rand() % screenWidth;
         ballY = rand() % (screenHeight / 2) + screenHeight / 4;
-        boardX = screenWidth / 2 - 100;
+        boardX = (screenWidth - boardWidth) / 2;
         isGameOver = false;
       }
     } else {
       if (IsKeyDown(KEY_A)) {
-        boardX -= 10;
+        boardX -= boardSpeed;
         if (boardX < 0)
           boardX = 0;
       }
       if (IsKeyDown(KEY_D)) {
-        boardX += 10;
-        if (boardX > screenWidth - 200)
-          boardX = screenWidth - 200;
+        boardX += boardSpeed;
+        if (boardX > screenWidth - boardWidth)
+          boardX = screenWidth - boardWidth;
       }
-      ballX += (isBallXIncreasing ? 1 : -1) * 5;
-      ballY += (isBallYIncreasing ? 1 : -1) * 5;
-      if (ballX > screenWidth - 5) {
+      ballX += (isBallXIncreasing ? 1 : -1) * ballSpeed;
+      ballY += (isBallYIncreasing ? 1 : -1) * ballSpeed;
+      if (ballX > screenWidth - ballRadius) {
         isBallXIncreasing = !isBallXIncreasing;
-        ballX = screenWidth - 5;
+        ballX = screenWidth - ballRadius;
       }
-      if (ballX < 5) {
+      if (ballX < ballRadius) {
         isBallXIncreasing = !isBallXIncreasing;
-        ballX = 5;
+        ballX = ballRadius;
       }
-      if (ballY > screenHeight - 5) {
+      if (ballY > screenHeight - ballRadius) {
         isGameOver = true;
       }
-      if (ballY > screenHeight - 25 && ballX > boardX && ballX < boardX + 200) {
+      if (ballY > screenHeight - 20 - ballRadius && ballX > boardX &&
+          ballX < boardX + boardWidth) {
         isBallYIncreasing = !isBallYIncreasing;
-        ballY = screenHeight - 25;
+        ballY = screenHeight - 20 - ballRadius;
       }
-      if (ballY < 5) {
+      if (ballY < ballRadius) {
         isBallYIncreasing = !isBallYIncreasing;
-        ballY = 5;
+        ballY = ballRadius;
       }
 
-      for (int i = 0; i < 14; i++) {
-        if (obstacles[i].isVisible) {
-          if (ballX >= obstacles[i].x &&
-              ballX <= obstacles[i].x + obstacles[i].width) {
-            if (ballY + 5 >= obstacles[i].y &&
-                ballY + 5 <= obstacles[i].y + obstacles[i].height) {
+      for (int i = 0; i < blockCount; i++) {
+        if (blocks[i].isVisible) {
+          if (ballX >= blocks[i].x && ballX <= blocks[i].x + blocks[i].width) {
+            if (ballY + ballRadius >= blocks[i].y &&
+                ballY + ballRadius <= blocks[i].y + blocks[i].height) {
               isBallYIncreasing = !isBallYIncreasing;
-              obstacles[i].isVisible = false;
-              ballY = obstacles[i].y - 5;
+              blocks[i].isVisible = false;
+              ballY = blocks[i].y - ballRadius;
             }
-            if (ballY - 5 <= obstacles[i].y + obstacles[i].height &&
-                ballY - 5 >= obstacles[i].y) {
+            if (ballY - ballRadius <= blocks[i].y + blocks[i].height &&
+                ballY - ballRadius >= blocks[i].y) {
               isBallYIncreasing = !isBallYIncreasing;
-              obstacles[i].isVisible = false;
-              ballY = obstacles[i].y + obstacles[i].height + 5;
+              blocks[i].isVisible = false;
+              ballY = blocks[i].y + blocks[i].height + ballRadius;
             }
           }
-          if (ballY >= obstacles[i].y &&
-              ballY <= obstacles[i].y + obstacles[i].height) {
-            if (ballX + 5 >= obstacles[i].x &&
-                ballX + 5 <= obstacles[i].x + obstacles[i].width) {
+          if (ballY >= blocks[i].y && ballY <= blocks[i].y + blocks[i].height) {
+            if (ballX + ballRadius >= blocks[i].x &&
+                ballX + ballRadius <= blocks[i].x + blocks[i].width) {
               isBallXIncreasing = !isBallXIncreasing;
-              obstacles[i].isVisible = false;
-              ballX = obstacles[i].x - 5;
+              blocks[i].isVisible = false;
+              ballX = blocks[i].x - ballRadius;
             }
-            if (ballX - 5 <= obstacles[i].x + obstacles[i].width &&
-                ballX - 5 >= obstacles[i].x) {
+            if (ballX - ballRadius <= blocks[i].x + blocks[i].width &&
+                ballX - ballRadius >= blocks[i].x) {
               isBallXIncreasing = !isBallXIncreasing;
-              obstacles[i].isVisible = false;
-              ballX = obstacles[i].x + obstacles[i].width + 5;
+              blocks[i].isVisible = false;
+              ballX = blocks[i].x + blocks[i].width + ballRadius;
             }
           }
         }
       }
 
-      DrawRectangle(boardX, screenHeight - 20, 200, 10, MAROON);
-      DrawCircle(ballX, ballY, 5, WHITE);
+      DrawRectangle(boardX, screenHeight - 20, boardWidth, 10, MAROON);
+      DrawCircle(ballX, ballY, ballRadius, WHITE);
       bool continueGame = false;
-      for (int i = 0; i < 14; i++) {
-        if (obstacles[i].isVisible) {
+      for (int i = 0; i < blockCount; i++) {
+        if (blocks[i].isVisible) {
           continueGame = true;
-          DrawRectangle(obstacles[i].x, obstacles[i].y, obstacles[i].width,
-                        obstacles[i].height, obstacles[i].color);
+          DrawRectangle(blocks[i].x, blocks[i].y, blocks[i].width,
+                        blocks[i].height, blocks[i].color);
         }
       }
       if (!continueGame)
